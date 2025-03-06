@@ -46,7 +46,6 @@ function cleanupJob(jobId) {
     delete jobs[jobId];
   }, JOB_CLEANUP_TIME);
 }
-
 // cloud token endpoint
 app.get("/api/auth/token", async (req, res) => {
   try {
