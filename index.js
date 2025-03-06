@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const multer = require("multer");
 const FormData = require("form-data");
+const chat= require("./routes/chat.js");
 
 const { Readable } = require("stream"); // Instead of buffer, use streams for better memory management
 const { v4: uuidv4 } = require("uuid"); // Generate unique job IDs
@@ -202,6 +203,8 @@ async function processChatRequest(jobId, file, userQuery, authHeader) {
     cleanupJob(jobId); // Schedule cleanup for failed jobs
   }
 }
+
+app.use("/api", chat );
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
