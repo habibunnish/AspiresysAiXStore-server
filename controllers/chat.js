@@ -17,6 +17,7 @@ const chatStream = async (req, res, next) => {
             Authorization: req.header("Authorization"), // Pass authorization from the client
           },
           responseType: "stream", // Important for streaming
+          timeout:60000,
         }
       );
   
