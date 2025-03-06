@@ -3,8 +3,7 @@
   "builds": [
     {
       "src": "./index.js",
-      "use": "@vercel/node",
-      "maxDuration": 60
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -21,7 +20,8 @@
       ],
       "headers": {
         "Access-Control-Allow-Origin": "*"
-      }
+      },
+      "maxDuration": 60
     }
   ]
 }
