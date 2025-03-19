@@ -10,6 +10,7 @@ const {
   chatStream,
   getJobStatus,
   requirementCapture,
+  documentGenerationBedRock,
 } = require("../controllers/chat.js");
 
 const router = express.Router();
@@ -26,6 +27,12 @@ router.post(
   "/web-bff/requirement-capture",
   upload.single("file"),
   requirementCapture
+);
+
+router.post(
+  "/web-bff/document-generation-bedrock",
+  upload.single("file"),
+  documentGenerationBedRock
 );
 
 module.exports = router;

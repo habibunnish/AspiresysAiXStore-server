@@ -77,7 +77,15 @@ const requirementCapture = async (req, res, next) => {
       contentType: file.mimetype,
     });
 
-    processChatRequestFileAndQuery(formData, jobId, req, file);
+    processChatRequestFileAndQuery(
+      formData,
+      jobId,
+      req,
+      file,
+      "J4B1IAZK3H",
+      "70V7RVBXDP",
+      req.query.message
+    );
 
     res.json({ jobId });
   } catch (error) {
@@ -97,7 +105,15 @@ const requirementCapture = async (req, res, next) => {
   }
 };
 
-async function processChatRequestFileAndQuery(formData, jobId, req, file) {
+async function processChatRequestFileAndQuery(
+  formData,
+  jobId,
+  req,
+  file,
+  flowId,
+  flowAliasId,
+  message = false
+) {
   try {
     await axios({
       method: "post",
@@ -116,9 +132,11 @@ async function processChatRequestFileAndQuery(formData, jobId, req, file) {
     const secondRes = await axios.post(
       "https://dev.aurascc.net/web-bff/invoke",
       {
-        flowId: "J4B1IAZK3H",
-        flowAliasId: "70V7RVBXDP",
-        input: file.originalname,
+        flowId: flowId,
+        flowAliasId: flowAliasId,
+        input: message
+          ? { input: message, transcript: file.originalname }
+          : file.originalname,
       },
       {
         headers: {
@@ -127,9 +145,11 @@ async function processChatRequestFileAndQuery(formData, jobId, req, file) {
         },
       }
     );
+
     jobs[jobId] = { status: "completed", data: secondRes.data }; // Store response data
     cleanupJob(jobId); // Schedule cleanup
   } catch (error) {
+    console.log(error, "the error");
     jobs[jobId] = {
       status: "failed",
       error: error.response?.data?.message || error.message,
@@ -138,4 +158,53 @@ async function processChatRequestFileAndQuery(formData, jobId, req, file) {
   }
 }
 
-module.exports = { chatStream, getJobStatus, requirementCapture, cleanupJob };
+async function documentGenerationBedRock(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const jobId = createJob();
+    const file = req.file;
+    const message = req.query.message;
+    const formData = new FormData();
+
+    formData.append("file", file.buffer, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+    });
+
+    processChatRequestFileAndQuery(
+      formData,
+      jobId,
+      req,
+      file,
+      "PQI7FXSZZN",
+      "0MX2689AL0",
+      message
+    );
+
+    res.json({ jobId });
+  } catch (error) {
+    console.error("Error in requirement capture:", error.message);
+
+    // Check if headers have been sent
+    if (!res.headersSent) {
+      res.status(error.response?.status || 500).send({
+        error: error.message,
+        details: error.response?.data?.message || "Internal server error",
+      });
+    } else {
+      // If headers were already sent, send error event in SSE format
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  }
+}
+
+module.exports = {
+  chatStream,
+  getJobStatus,
+  requirementCapture,
+  cleanupJob,
+  documentGenerationBedRock,
+};
