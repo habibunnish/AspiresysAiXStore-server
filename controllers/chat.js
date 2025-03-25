@@ -178,8 +178,8 @@ async function documentGenerationBedRock(req, res) {
       jobId,
       req,
       file,
-      "PQI7FXSZZN",
-      "0MX2689AL0",
+      "K4YBCA88M0",
+      "WV9JHFA1SD",
       message
     );
 
