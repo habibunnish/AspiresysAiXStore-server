@@ -11,30 +11,57 @@ const createJob = () => {
   return jobId;
 };
 
-async function processChatRequest(jobId, req, userQuery) {
+async function processChatRequest(jobId, req, userQuery, res) {
   try {
     const { flowId, flowAliasId, input } = req.body;
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
     const response = await axios.post(
-      `${process.env.BASE_URL}/invoke`,
+      `${process.env.BASE_URL}/invoke/stream`,
       { flowId, flowAliasId, input },
       {
         params: { userQuery },
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.header("Authorization"), // Pass authorization from the client
+          Authorization: req.header("Authorization"),
         },
+        responseType: "stream", // Set response type to stream
       }
     );
 
-    jobs[jobId] = { status: "completed", data: response.data }; // Store response data
-    cleanupJob(jobId); // Schedule cleanup
+    // Pipe the stream directly to response
+    response.data.on("data", (chunk) => {
+      if (!res.writableEnded) {
+        res.write(chunk);
+      }
+    });
+
+    response.data.on("end", () => {
+      if (!res.writableEnded) {
+        res.end();
+      }
+    });
+
+    response.data.on("error", (error) => {
+      console.error("Stream error:", error);
+      if (!res.writableEnded) {
+        res.write(
+          `data: ${JSON.stringify({ error: "Stream error occurred" })}\n\n`
+        );
+        res.end();
+      }
+    });
   } catch (error) {
-    console.log(error, "the error");
-    jobs[jobId] = {
-      status: "failed",
-      error: error.response?.data?.message || error.message,
-    };
-    cleanupJob(jobId); // Schedule cleanup for failed jobs
+    console.error("Error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to fetch stream" });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 }
 
@@ -46,12 +73,12 @@ function cleanupJob(jobId) {
 
 const chatStream = async (req, res, next) => {
   try {
-    const jobId = createJob(); // Create job
-    processChatRequest(jobId, req, req.header("Authorization"));
-    res.json({ jobId });
+    await processChatRequest(null, req, req.header("Authorization"), res);
   } catch (error) {
     console.error("Error fetching stream:", error);
-    res.status(500).json({ error: "Failed to fetch stream" });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to fetch stream" });
+    }
   }
 };
 
@@ -68,7 +95,7 @@ const requirementCapture = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-    const jobId = createJob();
+
     const file = req.file;
     const formData = new FormData();
 
@@ -77,28 +104,23 @@ const requirementCapture = async (req, res, next) => {
       contentType: file.mimetype,
     });
 
-    processChatRequestFileAndQuery(
+    await processChatRequestFileAndQuery(
       formData,
-      jobId,
+      res,
       req,
       file,
       "J4B1IAZK3H",
       "70V7RVBXDP",
       req.query.message
     );
-
-    res.json({ jobId });
   } catch (error) {
     console.error("Error in requirement capture:", error.message);
-
-    // Check if headers have been sent
     if (!res.headersSent) {
       res.status(error.response?.status || 500).send({
         error: error.message,
         details: error.response?.data?.message || "Internal server error",
       });
     } else {
-      // If headers were already sent, send error event in SSE format
       res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
       res.end();
     }
@@ -107,7 +129,7 @@ const requirementCapture = async (req, res, next) => {
 
 async function processChatRequestFileAndQuery(
   formData,
-  jobId,
+  res,
   req,
   file,
   flowId,
@@ -115,6 +137,7 @@ async function processChatRequestFileAndQuery(
   message = false
 ) {
   try {
+    // First upload the file
     await axios({
       method: "post",
       url: "https://dev.aurascc.net/web-bff/uploadFile?bucketName=transcript-document",
@@ -129,8 +152,14 @@ async function processChatRequestFileAndQuery(
       maxContentLength: Infinity,
     });
 
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    // Make the second request with streaming
     const secondRes = await axios.post(
-      "https://dev.aurascc.net/web-bff/invoke",
+      "https://dev.aurascc.net/web-bff/invoke/stream",
       {
         flowId: flowId,
         flowAliasId: flowAliasId,
@@ -143,18 +172,43 @@ async function processChatRequestFileAndQuery(
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"),
         },
+        responseType: "stream",
       }
     );
 
-    jobs[jobId] = { status: "completed", data: secondRes.data }; // Store response data
-    cleanupJob(jobId); // Schedule cleanup
+    // Pipe the stream directly to response
+    secondRes.data.on("data", (chunk) => {
+      if (!res.writableEnded) {
+        res.write(chunk);
+      }
+    });
+
+    secondRes.data.on("end", () => {
+      if (!res.writableEnded) {
+        res.end();
+      }
+    });
+
+    secondRes.data.on("error", (error) => {
+      console.error("Stream error:", error);
+      if (!res.writableEnded) {
+        res.write(
+          `data: ${JSON.stringify({ error: "Stream error occurred" })}\n\n`
+        );
+        res.end();
+      }
+    });
   } catch (error) {
-    console.log(error, "the error");
-    jobs[jobId] = {
-      status: "failed",
-      error: error.response?.data?.message || error.message,
-    };
-    cleanupJob(jobId); // Schedule cleanup for failed jobs
+    console.error("Error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message,
+        details: error.response?.data?.message || "Internal server error",
+      });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 }
 
@@ -173,7 +227,7 @@ async function documentGenerationBedRock(req, res) {
       contentType: file.mimetype,
     });
 
-    processChatRequestFileAndQuery(
+    await processChatRequestFileAndQuery(
       formData,
       jobId,
       req,
