@@ -15,22 +15,18 @@ const {
 
 const router = express.Router();
 
-router.post("/web-bff/chatStream", (req, res, next) => {
+router.post("/chatStream", (req, res, next) => {
   chatStream(req, res, next).catch(next);
 });
 
-router.get("/web-bff/chatStream/:jobId", (req, res, next) => {
+router.get("/chatStream/:jobId", (req, res, next) => {
   getJobStatus(req, res, next).catch(next);
 });
 
-router.post(
-  "/web-bff/requirement-capture",
-  upload.single("file"),
-  requirementCapture
-);
+router.post("/requirement-capture", upload.single("file"), requirementCapture);
 
 router.post(
-  "/web-bff/document-generation-bedrock",
+  "/document-generation-bedrock",
   upload.single("file"),
   documentGenerationBedRock
 );

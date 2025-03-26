@@ -46,6 +46,11 @@ function cleanupJob(jobId) {
     delete jobs[jobId];
   }, JOB_CLEANUP_TIME);
 }
+
+app.get("/server", (req, res) => {
+  res.send("Hello World!");
+});
+
 // cloud token endpoint
 app.get("/api/auth/token", async (req, res) => {
   try {
@@ -99,7 +104,7 @@ app.get("/api/auth/token/local", async (req, res) => {
 });
 
 // register user endpoint
-app.post("/api/web-bff/customers", async (req, res) => {
+app.post("/api/customers", async (req, res) => {
   try {
     const headers = {
       Authorization: req.header("Authorization"),
@@ -118,7 +123,7 @@ app.post("/api/web-bff/customers", async (req, res) => {
 });
 
 // login user endpoint
-app.post("/api/web-bff/customers/login", async (req, res) => {
+app.post("/api/customers/login", async (req, res) => {
   try {
     const headers = {
       Authorization: req.header("Authorization"),
