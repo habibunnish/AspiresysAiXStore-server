@@ -103,7 +103,7 @@ const requirementCapture = async (req, res, next) => {
       filename: file.originalname,
       contentType: file.mimetype,
     });
-
+    console.log("in req capture");
     await processChatRequestFileAndQuery(
       formData,
       res,
@@ -219,7 +219,7 @@ async function documentGenerationBedRock(req, res) {
     }
     const jobId = createJob();
     const file = req.file;
-    const message = req.query.message;
+    const message = req.body.message;
     const formData = new FormData();
 
     formData.append("file", file.buffer, {
@@ -229,15 +229,13 @@ async function documentGenerationBedRock(req, res) {
 
     await processChatRequestFileAndQuery(
       formData,
-      jobId,
+      res,
       req,
       file,
       "K4YBCA88M0",
       "WV9JHFA1SD",
       message
     );
-
-    res.json({ jobId });
   } catch (error) {
     console.error("Error in requirement capture:", error.message);
 
