@@ -13,12 +13,12 @@ const createJob = () => {
 
 async function processChatRequest(jobId, req, userQuery) {
   try {
-    const { flowId, flowAliasId, input } = req.body;
+    const { flowId, flowAliasId, input, storeCode, customerId } = req.body;
     const response = await axios.post(
       `${process.env.BASE_URL}/invoke`,
       { flowId, flowAliasId, input },
       {
-        params: { userQuery },
+        params: { userQuery, storeCode, customerId },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"), // Pass authorization from the client
@@ -114,6 +114,9 @@ async function processChatRequestFileAndQuery(
   flowAliasId,
   message = false
 ) {
+  // Extract storeCode and customerId from query parameters
+  const storeCode = req.query.storeCode;
+  const customerId = req.query.customerId;
   try {
     await axios({
       method: "post",
@@ -139,6 +142,7 @@ async function processChatRequestFileAndQuery(
           : file.originalname,
       },
       {
+        params: { storeCode, customerId },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"),

@@ -154,7 +154,9 @@ app.post(
         jobId,
         req.file,
         req.query.userQuery,
-        req.header("Authorization")
+        req.header("Authorization"),
+        req.query.storeCode,
+        req.query.customerId
       );
 
       res.json({ jobId }); // Return job ID immediately
@@ -174,7 +176,14 @@ app.get("/api/bff/users/xstore-chatgpt/status/:jobId", (req, res) => {
 });
 
 // Asynchronous function to process the chat request
-async function processChatRequest(jobId, file, userQuery, authHeader) {
+async function processChatRequest(
+  jobId,
+  file,
+  userQuery,
+  authHeader,
+  storeCode,
+  customerId
+) {
   try {
     const formData = new FormData();
     const fileStream = Readable.from(file.buffer);
@@ -187,7 +196,7 @@ async function processChatRequest(jobId, file, userQuery, authHeader) {
       "https://auras-dc-dev-api.azure-api.net/chatgpt/bff/users/xstore-chatgpt",
       formData,
       {
-        params: { userQuery },
+        params: { userQuery, storeCode, customerId },
         headers: { Authorization: authHeader, ...formData.getHeaders() },
       }
     );
