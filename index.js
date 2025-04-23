@@ -192,12 +192,20 @@ async function processChatRequest(
       contentType: file.mimetype,
     });
 
+    // First, append storeCode to the form data
+    const updatedFormData = new FormData();
+    updatedFormData.append("file", fileStream, {
+      filename: file.originalname,
+      contentType: file.mimetype,
+    });
+    updatedFormData.append("storeCode", storeCode);
+
     const response = await axios.post(
-      "https://auras-dc-dev-api.azure-api.net/chatgpt/bff/users/xstore-chatgpt",
-      formData,
+      `https://auras-dc-dev-api.azure-api.net/chatgpt/bff/users/xstore-chatgpt?userId=${customerId}&registered=true`,
+      updatedFormData,
       {
-        params: { userQuery, storeCode, customerId },
-        headers: { Authorization: authHeader, ...formData.getHeaders() },
+        params: { userQuery },
+        headers: { Authorization: authHeader, ...updatedFormData.getHeaders() },
       }
     );
 

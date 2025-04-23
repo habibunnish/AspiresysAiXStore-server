@@ -15,10 +15,17 @@ async function processChatRequest(jobId, req, userQuery) {
   try {
     const { flowId, flowAliasId, input, storeCode, customerId } = req.body;
     const response = await axios.post(
-      `${process.env.BASE_URL}/invoke`,
-      { flowId, flowAliasId, input },
+      `${process.env.BASE_URL}/invoke?userId=${customerId}&registered=true`,
       {
-        params: { userQuery, storeCode, customerId },
+        flowId,
+        flowAliasId,
+        input: {
+          ...input,
+          storeCode: storeCode,
+        },
+      },
+      {
+        params: { userQuery },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"), // Pass authorization from the client
@@ -132,17 +139,18 @@ async function processChatRequestFileAndQuery(
       maxContentLength: Infinity,
     });
 
+    const inputData = message
+      ? { input: message, transcript: file.originalname, storeCode: storeCode }
+      : { storeCode: storeCode, transcript: file.originalname };
+
     const secondRes = await axios.post(
-      "https://dev.aurascc.net/web-bff/invoke",
+      `https://dev.aurascc.net/web-bff/invoke?userId=${customerId}&registered=true`,
       {
         flowId: flowId,
         flowAliasId: flowAliasId,
-        input: message
-          ? { input: message, transcript: file.originalname }
-          : file.originalname,
+        input: inputData,
       },
       {
-        params: { storeCode, customerId },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"),
