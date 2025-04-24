@@ -155,8 +155,8 @@ app.post(
         req.file,
         req.query.userQuery,
         req.header("Authorization"),
-        req.query.storeCode,
-        req.query.customerId
+        req.body.storeCode,
+        req.query.userId
       );
 
       res.json({ jobId }); // Return job ID immediately

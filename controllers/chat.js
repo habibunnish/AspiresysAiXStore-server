@@ -136,7 +136,7 @@ async function processChatRequestFileAndQuery(
 
     const inputData = message
       ? { input: message, transcript: file.originalname, storeCode: storeCode }
-      : { storeCode: storeCode, transcript: file.originalname };
+      : { storeCode: storeCode, input: file.originalname };
 
     const secondRes = await axios.post(
       `https://dev.aurascc.net/web-bff/invoke?userId=${customerId}&registered=true`,
