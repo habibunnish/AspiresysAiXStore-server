@@ -15,17 +15,20 @@ async function processChatRequest(jobId, req, userQuery) {
   try {
     const { flowId, flowAliasId, input, storeCode, customerId } = req.body;
     const response = await axios.post(
-      `${process.env.BASE_URL}/invoke`,
-      { flowId, flowAliasId, input },
+      `${process.env.BASE_URL}/invoke?userId=${customerId}&registered=true`,
       {
-        params: { userQuery, storeCode, customerId },
+        flowId,
+        flowAliasId,
+        input,
+      },
+      {
+        params: { userQuery },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"), // Pass authorization from the client
         },
       }
     );
-
     jobs[jobId] = { status: "completed", data: response.data }; // Store response data
     cleanupJob(jobId); // Schedule cleanup
   } catch (error) {
@@ -43,7 +46,6 @@ function cleanupJob(jobId) {
     delete jobs[jobId];
   }, JOB_CLEANUP_TIME);
 }
-
 const chatStream = async (req, res, next) => {
   try {
     const jobId = createJob(); // Create job
@@ -115,8 +117,8 @@ async function processChatRequestFileAndQuery(
   message = false
 ) {
   // Extract storeCode and customerId from query parameters
-  const storeCode = req.query.storeCode;
-  const customerId = req.query.customerId;
+  const storeCode = req.body.storeCode;
+  const customerId = req.query.userId;
   try {
     await axios({
       method: "post",
@@ -132,17 +134,18 @@ async function processChatRequestFileAndQuery(
       maxContentLength: Infinity,
     });
 
+    const inputData = message
+      ? { input: message, transcript: file.originalname, storeCode: storeCode }
+      : { storeCode: storeCode, input: file.originalname };
+
     const secondRes = await axios.post(
-      "https://dev.aurascc.net/web-bff/invoke",
+      `https://dev.aurascc.net/web-bff/invoke?userId=${customerId}&registered=true`,
       {
         flowId: flowId,
         flowAliasId: flowAliasId,
-        input: message
-          ? { input: message, transcript: file.originalname }
-          : file.originalname,
+        input: inputData,
       },
       {
-        params: { storeCode, customerId },
         headers: {
           "Content-Type": "application/json",
           Authorization: req.header("Authorization"),
@@ -167,11 +170,11 @@ async function documentGenerationBedRock(req, res) {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
+    console.log(req.body, "the req body");
     const jobId = createJob();
     const file = req.file;
-    const message = req.query.message;
+    const message = req.body.message;
     const formData = new FormData();
-
     formData.append("file", file.buffer, {
       filename: file.originalname,
       contentType: file.mimetype,
