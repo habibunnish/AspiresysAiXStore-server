@@ -19,10 +19,7 @@ async function processChatRequest(jobId, req, userQuery) {
       {
         flowId,
         flowAliasId,
-        input: {
-          ...input,
-          storeCode: storeCode,
-        },
+        input,
       },
       {
         params: { userQuery },
@@ -32,7 +29,6 @@ async function processChatRequest(jobId, req, userQuery) {
         },
       }
     );
-
     jobs[jobId] = { status: "completed", data: response.data }; // Store response data
     cleanupJob(jobId); // Schedule cleanup
   } catch (error) {
@@ -122,8 +118,8 @@ async function processChatRequestFileAndQuery(
   message = false
 ) {
   // Extract storeCode and customerId from query parameters
-  const storeCode = req.query.storeCode;
-  const customerId = req.query.customerId;
+  const storeCode = req.body.storeCode;
+  const customerId = req.query.userId;
   try {
     await axios({
       method: "post",
@@ -175,11 +171,11 @@ async function documentGenerationBedRock(req, res) {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
+    console.log(req.body, "the req body");
     const jobId = createJob();
     const file = req.file;
-    const message = req.query.message;
+    const message = req.body.message;
     const formData = new FormData();
-
     formData.append("file", file.buffer, {
       filename: file.originalname,
       contentType: file.mimetype,
