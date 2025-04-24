@@ -46,7 +46,6 @@ function cleanupJob(jobId) {
     delete jobs[jobId];
   }, JOB_CLEANUP_TIME);
 }
-
 const chatStream = async (req, res, next) => {
   try {
     const jobId = createJob(); // Create job
